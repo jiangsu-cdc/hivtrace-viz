@@ -6,15 +6,16 @@
  * -------------------------- */
 @font-face {
   font-family: "FontAwesome";
-  src: url(/dist/674f50d287a8c48dc19ba404d20fe713.eot);
-  src: url(/dist/674f50d287a8c48dc19ba404d20fe713.eot?#iefix&v=4.7.0)
+  src: url(/hivtrace-viz/dist/674f50d287a8c48dc19ba404d20fe713.eot);
+  src: url(/hivtrace-viz/dist/674f50d287a8c48dc19ba404d20fe713.eot?#iefix&v=4.7.0)
       format("embedded-opentype"),
     url(data:application/font-woff;base64,ZXhwb3J0IGRlZmF1bHQgX193ZWJwYWNrX3B1YmxpY19wYXRoX18gKyAiYWY3YWU1MDVhOWVlZDUwM2Y4YjhlNjk4MjAzNjg3M2Uud29mZjIiOw==)
       format("woff2"),
     url(data:application/font-woff;base64,ZXhwb3J0IGRlZmF1bHQgX193ZWJwYWNrX3B1YmxpY19wYXRoX18gKyAiZmVlNjZlNzEyYThhMDhlZWY1ODA1YTQ2ODkyOTMyYWQud29mZiI7)
       format("woff"),
-    url(/dist/b06871f281fee6b241d60582ae9369b9.ttf) format("truetype"),
-    url(/dist/912ec66d7572ff821749319396470bde.svg#fontawesomeregular)
+    url(/hivtrace-viz/dist/b06871f281fee6b241d60582ae9369b9.ttf)
+      format("truetype"),
+    url(/hivtrace-viz/dist/912ec66d7572ff821749319396470bde.svg#fontawesomeregular)
       format("svg");
   font-weight: normal;
   font-style: normal;
@@ -3637,15 +3638,16 @@ th {
 }
 @font-face {
   font-family: "Glyphicons Halflings";
-  src: url(/dist/f4769f9bdb7466be65088239c12046d1.eot);
-  src: url(/dist/f4769f9bdb7466be65088239c12046d1.eot?#iefix)
+  src: url(/hivtrace-viz/dist/f4769f9bdb7466be65088239c12046d1.eot);
+  src: url(/hivtrace-viz/dist/f4769f9bdb7466be65088239c12046d1.eot?#iefix)
       format("embedded-opentype"),
     url(data:application/font-woff;base64,ZXhwb3J0IGRlZmF1bHQgX193ZWJwYWNrX3B1YmxpY19wYXRoX18gKyAiNDQ4YzM0YTU2ZDY5OWMyOTExN2FkYzY0YzQzYWZmZWIud29mZjIiOw==)
       format("woff2"),
     url(data:application/font-woff;base64,ZXhwb3J0IGRlZmF1bHQgX193ZWJwYWNrX3B1YmxpY19wYXRoX18gKyAiZmEyNzcyMzI3ZjU1ZDgxOTgzMDFmZGI4YmNmYzgxNTgud29mZiI7)
       format("woff"),
-    url(/dist/e18bbf611f2a2e43afc071aa2f4e1512.ttf) format("truetype"),
-    url(/dist/89889688147bd7575d6327160d64e760.svg#glyphicons_halflingsregular)
+    url(/hivtrace-viz/dist/e18bbf611f2a2e43afc071aa2f4e1512.ttf)
+      format("truetype"),
+    url(/hivtrace-viz/dist/89889688147bd7575d6327160d64e760.svg#glyphicons_halflingsregular)
       format("svg");
 }
 .glyphicon {
