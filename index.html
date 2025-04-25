@@ -49,6 +49,7 @@
                   <label>Load network JSON</label>
                   <input type="file" id="json_file" />
                 </li>
+<!--
                 <li>
                   <a
                     href="#"
@@ -58,6 +59,7 @@
                     Load .CSV data
                   </a>
                 </li>
+-->
               </ul>
             </li>
           </ul>
@@ -977,7 +979,7 @@
 
         d3.json(url, function (error, results) {
           if (error) {
-            HandleAppError("Failed loading file " + error.responseURL);
+            HandleAppError("No file chosen " + error.responseURL);
           } else {
             init(results);
           }
