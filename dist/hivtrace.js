@@ -3903,6 +3903,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var jQuery_QueryBuilder_dist_css_query_builder_default_css__WEBPACK_IMPORTED_MODULE_17__ = __webpack_require__(/*! jQuery-QueryBuilder/dist/css/query-builder.default.css */ "./node_modules/jQuery-QueryBuilder/dist/css/query-builder.default.css");
 /* harmony import */ var bootstrap_datepicker__WEBPACK_IMPORTED_MODULE_18__ = __webpack_require__(/*! bootstrap-datepicker */ "./node_modules/bootstrap-datepicker/dist/js/bootstrap-datepicker.js");
 /* harmony import */ var bootstrap_datepicker__WEBPACK_IMPORTED_MODULE_18___default = /*#__PURE__*/__webpack_require__.n(bootstrap_datepicker__WEBPACK_IMPORTED_MODULE_18__);
+/* harmony import */ var _socialNetworkLoader__WEBPACK_IMPORTED_MODULE_19__ = __webpack_require__(/*! ./socialNetworkLoader */ "./src/socialNetworkLoader.js");
 /* provided dependency */ var $ = __webpack_require__(/*! jquery */ "./node_modules/jquery/dist/jquery-exposed.js");
 function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _unsupportedIterableToArray(arr) || _nonIterableSpread(); }
 function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
@@ -3926,13 +3927,16 @@ function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
 
 
 
+ // Keep misc import
 
 
 
 
 
 
+ // Keep datepicker import
 
+// Import the refactored social network loader function
 
 var hivtrace_cluster_network_graph = function hivtrace_cluster_network_graph(json, network_container, network_status_string, network_warning_tag, button_bar_ui, attributes, filter_edges_toggle, clusters_table, nodes_table, parent_container, options) {
   // [REQ] json                        :          the JSON object containing network nodes, edges, and meta-information
@@ -4126,8 +4130,10 @@ var hivtrace_cluster_network_graph = function hivtrace_cluster_network_graph(jso
 
   /** default subcluster definition threshold */
   self.subcluster_threshold = _network_js__WEBPACK_IMPORTED_MODULE_13__.check_network_option(options, "subcluster-thershold", 0.005);
-  _clustersOfInterest_js__WEBPACK_IMPORTED_MODULE_10__.init(self);
-  _nodesTab_js__WEBPACK_IMPORTED_MODULE_9__.init(d3__WEBPACK_IMPORTED_MODULE_0__.select(nodes_table));
+  if (self.isPrimaryGraph) {
+    _clustersOfInterest_js__WEBPACK_IMPORTED_MODULE_10__.init(self);
+    _nodesTab_js__WEBPACK_IMPORTED_MODULE_9__.init(d3__WEBPACK_IMPORTED_MODULE_0__.select(nodes_table));
+  }
   self.countryCentersObject = _network_js__WEBPACK_IMPORTED_MODULE_13__.check_network_option(options, "country-centers");
   self.countryOutlines = _network_js__WEBPACK_IMPORTED_MODULE_13__.check_network_option(options, "country-outlines");
   if (self.countryCentersObject && self.countryOutlines) {
@@ -5986,8 +5992,6 @@ var hivtrace_cluster_network_graph = function hivtrace_cluster_network_graph(jso
         self.populate_predefined_attribute(def, key);
       }
       self._aux_populate_category_menus();
-
-      // populate the UI elements
     }
     if (self.cluster_sizes.length > max_points_to_render) {
       var sorted_array = underscore__WEBPACK_IMPORTED_MODULE_1__["default"].filter(underscore__WEBPACK_IMPORTED_MODULE_1__["default"].map(self.cluster_sizes, function (d, i) {
@@ -6245,7 +6249,6 @@ var hivtrace_cluster_network_graph = function hivtrace_cluster_network_graph(jso
     if (self.subcluster_table) {
       self.update_volatile_elements(self.subcluster_table);
     }
-    //console.log ("redraw_tables", clustersOfInterest.get_editor(), nodesTab.getNodeTable());
     var nt = _nodesTab_js__WEBPACK_IMPORTED_MODULE_9__.getNodeTable();
     self.update_volatile_elements(nt, nt.node_table_N > nt.node_table_DN || nt.node_table_DN > _globals_js__WEBPACK_IMPORTED_MODULE_12__.CoIAddLimit);
     if (self.priority_set_table) {
@@ -7848,9 +7851,11 @@ var hivtrace_cluster_network_graph = function hivtrace_cluster_network_graph(jso
             }
           });
         }
-        self.draw_extended_node_table([], null, null, {
-          "no-filter": true
-        });
+        if (self.isPrimaryGraph) {
+          self.draw_extended_node_table([], null, null, {
+            "no-filter": true
+          });
+        }
       } else {
         self.draw_node_table(self.extra_node_table_columns, null, null, {
           "no-filter": true
@@ -8690,6 +8695,7 @@ var hivtrace_cluster_network_graph = function hivtrace_cluster_network_graph(jso
       return underscore__WEBPACK_IMPORTED_MODULE_1__["default"].has(e, "edge_type") ? e["edge_type"] : "";
     };
     return {
+      //"simplified-mspp" : self.has_multiple_sequences,
       "edge-styler": function edgeStyler(element, d, network) {
         var e_type = edge_typer(d);
         if (e_type !== "") {
@@ -8754,303 +8760,10 @@ var hivtrace_cluster_network_graph = function hivtrace_cluster_network_graph(jso
 
   /*------------ Node injection (social network) ---------------*/
 
+  // The load_nodes_edges function is now imported from socialNetworkLoader.js
+  // We will call it by passing 'self' as the first argument.
   self.load_nodes_edges = function (nodes_and_attributes, index_id, edges_and_attributes, annotation) {
-    annotation = annotation || "Social";
-    /**
-        1. Scan the list of nodes for
-            a. Nodes not present in the existing network
-            b. Attribute names
-            c. Attribute values
-         2. Scan the list of edges for
-            a. Edges not present in the existing network
-            b. Attribute names
-            c. Attribute values
-     */
-
-    var new_nodes = [];
-    var edge_types_dict = {};
-    var existing_nodes = 0;
-    var injected_nodes = {};
-    var node_attributes = {};
-    var existing_network_nodes = {};
-    var node_name_2_id = {};
-    underscore__WEBPACK_IMPORTED_MODULE_1__["default"].each(self.json.Nodes, function (n, i) {
-      existing_network_nodes[n.id] = n;
-      node_name_2_id[n.id] = i;
-    });
-    var handle_node_attributes = function handle_node_attributes(target, n) {
-      underscore__WEBPACK_IMPORTED_MODULE_1__["default"].each(n, function (attribute_value, attribute_key) {
-        if (attribute_key !== index_id) {
-          _hiv_tx_network_js__WEBPACK_IMPORTED_MODULE_14__.HIVTxNetwork.inject_attribute_node_value_by_id(target, attribute_key, attribute_value);
-        }
-      });
-    };
-    var inject_new_node = function inject_new_node(node_name, n) {
-      var new_node = {
-        node_class: "injected",
-        node_annotation: annotation,
-        attributes: [],
-        degree: 0
-      };
-      new_node[_globals_js__WEBPACK_IMPORTED_MODULE_12__.network.NodeAttributeID] = {};
-      new_node.id = node_name;
-      handle_node_attributes(new_node, n);
-      node_name_2_id[node_name] = self.json.Nodes.length;
-      self.json.Nodes.push(new_node);
-      new_nodes.push(new_node);
-    };
-    if (nodes_and_attributes && nodes_and_attributes.length) {
-      if (!(index_id in nodes_and_attributes[0])) {
-        throw Error(index_id + " is not one of the attributes in the imported node records");
-      }
-      underscore__WEBPACK_IMPORTED_MODULE_1__["default"].each(nodes_and_attributes[0], function (r, i) {
-        if (i !== index_id) {
-          var attribute_definition = {
-            label: i,
-            type: "String",
-            annotation: annotation
-          };
-          self.inject_attribute_description(i, attribute_definition);
-        }
-      });
-      underscore__WEBPACK_IMPORTED_MODULE_1__["default"].each(nodes_and_attributes, function (n) {
-        if (n[index_id] in existing_network_nodes) {
-          handle_node_attributes(existing_network_nodes[n[index_id]], n);
-          existing_nodes++;
-        } else {
-          inject_new_node(n[index_id], n);
-        }
-      });
-    }
-    if (edges_and_attributes && edges_and_attributes.length) {
-      var auto_inject = !(nodes_and_attributes && nodes_and_attributes.length);
-      if (auto_inject) {
-        underscore__WEBPACK_IMPORTED_MODULE_1__["default"].map(existing_network_nodes, function (e) {
-          return false;
-        });
-      }
-      underscore__WEBPACK_IMPORTED_MODULE_1__["default"].each(edges_and_attributes, function (e) {
-        try {
-          if ("Index" in e && "Partner" in e && "Contact" in e) {
-            if (!(e["Index"] in node_name_2_id)) {
-              if (auto_inject) {
-                inject_new_node(e["Index"], []);
-              } else {
-                throw Error("Invalid index node");
-              }
-            } else if (auto_inject) {
-              existing_network_nodes[e["Index"]] = true;
-            }
-            if (!(e["Partner"] in node_name_2_id)) {
-              if (auto_inject) {
-                inject_new_node(e["Partner"], []);
-              } else {
-                throw Error("Invalid partner node");
-              }
-            } else if (auto_inject) {
-              existing_network_nodes[e["Partner"]] = true;
-            }
-            edge_types_dict[e["Contact"]] = (edge_types_dict[e["Contact"]] ? edge_types_dict[e["Contact"]] : 0) + 1;
-            var new_edge = {
-              source: node_name_2_id[e["Index"]],
-              target: node_name_2_id[e["Partner"]],
-              edge_type: e["Contact"],
-              length: 0.005,
-              directed: true
-            };
-            self.json.Edges.push(new_edge);
-          } else {
-            throw Error("Missing required attribute");
-          }
-        } catch (err) {
-          throw Error("Invalid edge specification ( " + err + ") " + JSON.stringify(e));
-        }
-      });
-      if (auto_inject) {
-        existing_nodes = underscore__WEBPACK_IMPORTED_MODULE_1__["default"].size(underscore__WEBPACK_IMPORTED_MODULE_1__["default"].filter(existing_network_nodes, function (e) {
-          return e;
-        }));
-      }
-      self._aux_populate_category_menus();
-      self.update_clusters_with_injected_nodes(null, null, annotation);
-      if (self._is_CDC_) {
-        self.draw_extended_node_table(self.aggregate_indvidual_level_records());
-      } else {
-        self.draw_node_table(self.extra_node_table_columns, self.json.Nodes);
-      }
-      if (!self.extra_cluster_table_columns) {
-        self.extra_cluster_table_columns = [];
-      }
-      if (!self.extra_subcluster_table_columns) {
-        self.extra_subcluster_table_columns = [];
-      }
-      var edge_types_by_cluster = {};
-      underscore__WEBPACK_IMPORTED_MODULE_1__["default"].each(self.json.Edges, function (e) {
-        try {
-          var edge_clusters = underscore__WEBPACK_IMPORTED_MODULE_1__["default"].union(underscore__WEBPACK_IMPORTED_MODULE_1__["default"].keys(self.json.Nodes[e.source].extended_cluster), underscore__WEBPACK_IMPORTED_MODULE_1__["default"].keys(self.json.Nodes[e.target].extended_cluster));
-          underscore__WEBPACK_IMPORTED_MODULE_1__["default"].each(edge_clusters, function (c) {
-            if (!(c in edge_types_by_cluster)) {
-              edge_types_by_cluster[c] = {};
-            }
-            if (e.edge_type) {
-              edge_types_by_cluster[c][e.edge_type] = 1;
-            }
-          });
-        } catch (err) {
-          console.log(err);
-        }
-      });
-      var edge_types_by_cluster_sorted = {};
-      underscore__WEBPACK_IMPORTED_MODULE_1__["default"].each(edge_types_by_cluster, function (v, c) {
-        var my_keys = underscore__WEBPACK_IMPORTED_MODULE_1__["default"].keys(v);
-        my_keys.sort();
-        edge_types_by_cluster_sorted[c] = my_keys;
-      });
-
-      /*var _edge_dasher = d3.scale
-        .ordinal()
-        .range(kGlobals.CategoricalDashPatterns)
-        .domain(edge_types);
-      */
-
-      var _social_view_handler = function _social_view_handler(id, node_filter, labeled_links, shown_types, title, e) {
-        self.open_exclusive_tab_view(id, node_filter, title, self._social_view_options(labeled_links, shown_types), true);
-      };
-      var _injected_column_subcluster_button_handler = function _injected_column_subcluster_button_handler(payload, edge_filter, title, e) {
-        function edge_filter_for_subclusters(edge) {
-          return _hiv_tx_network_js__WEBPACK_IMPORTED_MODULE_14__.HIVTxNetwork.is_edge_injected(edge) || edge.length <= self.subcluster_threshold;
-        }
-        var subcluster_edges = [];
-        var direct_links_only = (0,_misc__WEBPACK_IMPORTED_MODULE_11__.hivtrace_cluster_depthwise_traversal)(self.json.Nodes, self.json.Edges, edge_filter || edge_filter_for_subclusters,
-        //null,
-        subcluster_edges, payload.children);
-        var labeled_links = {},
-          shown_types = {};
-        underscore__WEBPACK_IMPORTED_MODULE_1__["default"].each(subcluster_edges[0], function (e) {
-          if (e.edge_type) {
-            labeled_links[e.edge_type] = 1;
-            shown_types[e.edge_type] = 1;
-          }
-        });
-        labeled_links = underscore__WEBPACK_IMPORTED_MODULE_1__["default"].keys(labeled_links);
-        labeled_links.sort();
-        labeled_links.push("");
-        shown_types[""] = 1;
-        title = title || function (id) {
-          return "Subcluster " + payload.cluster_id + "[+ " + annotation + "]";
-        };
-        var cv = self.view_subcluster(payload, direct_links_only[0], title(payload.cluster_id), self._social_view_options(labeled_links, shown_types), edge_filter_for_subclusters, true);
-        //cv.annotate_priority_clusters(timeDateUtil._networkCDCDateField, 36, 12);
-        //cv.handle_attribute_categorical("recent_rapid");
-        cv._refresh_subcluster_view(self.today || _timeDateUtil_js__WEBPACK_IMPORTED_MODULE_8__.getCurrentDate());
-      };
-      var injected_column_subcluster = [{
-        description: {
-          value: annotation + " network",
-          help: "View subclusters with " + annotation + " data"
-        },
-        generator: function generator(cluster) {
-          return {
-            value: cluster,
-            callback: function callback(element, payload) {
-              var this_cell = d3__WEBPACK_IMPORTED_MODULE_0__.select(element);
-              this_cell.append("button").classed("btn btn-primary btn-xs pull-right", true).style("margin-left", "1em").text("Complete " + annotation).on("click", underscore__WEBPACK_IMPORTED_MODULE_1__["default"].partial(_injected_column_subcluster_button_handler, payload, null, null));
-              var node_ids = {};
-              underscore__WEBPACK_IMPORTED_MODULE_1__["default"].each(payload.children, function (n) {
-                node_ids[n.id] = 1;
-              });
-              this_cell.append("button").classed("btn btn-primary btn-xs pull-right", true).text("Directly linked " + annotation).on("click", underscore__WEBPACK_IMPORTED_MODULE_1__["default"].partial(_injected_column_subcluster_button_handler, payload, function (edge) {
-                return self.json.Nodes[edge.target].id in node_ids || self.json.Nodes[edge.source].id in node_ids;
-              }, function (id) {
-                return "Subcluster " + payload.cluster_id + "[+ direct  " + annotation + "]";
-              }));
-            }
-          };
-        }
-      }];
-      var injected_column = [{
-        description: {
-          value: annotation + " network",
-          sort: function sort(c) {
-            return c.value[0];
-          },
-          help: "Nodes added and clusters merged through " + annotation
-        },
-        generator: function generator(cluster) {
-          return {
-            value: [cluster.injected[annotation], cluster.linked_clusters, cluster.cluster_id],
-            callback: function callback(element, payload) {
-              var this_cell = d3__WEBPACK_IMPORTED_MODULE_0__.select(element);
-              this_cell.text(Number(payload[0]) + " " + annotation + " nodes. ");
-              var other_clusters = [];
-              if (payload[1]) {
-                other_clusters = underscore__WEBPACK_IMPORTED_MODULE_1__["default"].without(underscore__WEBPACK_IMPORTED_MODULE_1__["default"].keys(payload[1]), payload[2]);
-                if (other_clusters.length) {
-                  other_clusters.sort();
-                  this_cell.append("span").classed("label label-info", true).text("Bridges to " + other_clusters.length + " clusters").attr("title", other_clusters.join(", "));
-                }
-              }
-              var labeled_links = underscore__WEBPACK_IMPORTED_MODULE_1__["default"].clone(edge_types_by_cluster_sorted[payload[2]]);
-              if (payload[0] > 0 || other_clusters.length || edge_types_by_cluster_sorted[payload[2]] && labeled_links.length) {
-                labeled_links.push("");
-                var shown_types = {};
-                underscore__WEBPACK_IMPORTED_MODULE_1__["default"].each(labeled_links, function (t) {
-                  shown_types[t] = 1;
-                });
-                this_cell.append("button").classed("btn btn-primary btn-xs pull-right", true).text("Directly linked " + annotation).style("margin-left", "1em").on("click", function (e) {
-                  var directly_linked_ids = {};
-                  var node_ids = {};
-                  underscore__WEBPACK_IMPORTED_MODULE_1__["default"].each(cluster.children, function (n) {
-                    node_ids[n.id] = 1;
-                  });
-                  var direct_links_only = (0,_misc__WEBPACK_IMPORTED_MODULE_11__.hivtrace_cluster_depthwise_traversal)(self.json.Nodes, self.json.Edges, function (edge) {
-                    return self.json.Nodes[edge.target].id in node_ids || self.json.Nodes[edge.source].id in node_ids;
-                  }, false, cluster.children);
-                  underscore__WEBPACK_IMPORTED_MODULE_1__["default"].each(direct_links_only[0], function (n) {
-                    directly_linked_ids[n.id] = true;
-                  });
-
-                  //console.log (directly_linked_ids);
-
-                  _social_view_handler(payload[2], function (n) {
-                    return n.id in directly_linked_ids;
-                  }, labeled_links, shown_types, function (id) {
-                    return "Cluster " + id + "[+ direct " + annotation + "]";
-                  }, e);
-                });
-                this_cell.append("button").classed("btn btn-primary btn-xs pull-right", true).text("Complete " + annotation).on("click", underscore__WEBPACK_IMPORTED_MODULE_1__["default"].partial(_social_view_handler, payload[2], function (n) {
-                  return n.extended_cluster && payload[2] in n.extended_cluster;
-                }, labeled_links, shown_types, function (id) {
-                  return "Cluster " + id + "[+ " + annotation + "]";
-                }));
-              }
-            }
-          };
-        }
-      }];
-      if (self.extra_cluster_table_columns) {
-        self.extra_cluster_table_columns = self.extra_cluster_table_columns.concat(injected_column);
-      } else {
-        self.extra_cluster_table_columns = injected_column;
-      }
-      self.draw_cluster_table(self.extra_cluster_table_columns, self.cluster_table);
-      if (self.subcluster_table) {
-        if (self.extra_subcluster_table_columns) {
-          self.extra_subcluster_table_columns = self.extra_subcluster_table_columns.concat(injected_column_subcluster);
-        } else {
-          self.extra_subcluster_table_columns = injected_column_subcluster;
-        }
-        self.draw_cluster_table(self.extra_subcluster_table_columns, self.subcluster_table, {
-          subclusters: true,
-          "no-clusters": true
-        });
-      }
-    }
-    return {
-      nodes: new_nodes,
-      existing_nodes: existing_nodes,
-      edges: edge_types_dict
-    };
+    return (0,_socialNetworkLoader__WEBPACK_IMPORTED_MODULE_19__.load_nodes_edges)(self, nodes_and_attributes, index_id, edges_and_attributes, annotation);
   };
   self.update_clusters_with_injected_nodes = function (node_filter, edge_filter, annotation) {
     var recomputed_clusters;
@@ -9169,10 +8882,12 @@ var hivtrace_cluster_network_graph = function hivtrace_cluster_network_graph(jso
     }
     return 1;
   }).chargeDistance(l_scale * 0.1).gravity(self.showing_on_map ? 0 : gravity_scale(self.json.Nodes.length)).friction(0.25);
-  d3__WEBPACK_IMPORTED_MODULE_0__.select(self.container).selectAll(".my_progress").style("display", "none");
   d3__WEBPACK_IMPORTED_MODULE_0__.select(self.container).selectAll("svg").remove();
-  _nodesTab_js__WEBPACK_IMPORTED_MODULE_9__.getNodeTable().selectAll("*").remove();
-  self.cluster_table.selectAll("*").remove();
+  if (self.isPrimaryGraph) {
+    d3__WEBPACK_IMPORTED_MODULE_0__.select(self.container).selectAll(".my_progress").style("display", "none");
+    _nodesTab_js__WEBPACK_IMPORTED_MODULE_9__.getNodeTable().selectAll("*").remove();
+    self.cluster_table.selectAll("*").remove();
+  }
   self.network_svg = d3__WEBPACK_IMPORTED_MODULE_0__.select(self.container).append("svg:svg")
   //.style ("border", "solid black 1px")
   .attr("id", self.dom_prefix + "-network-svg").attr("width", self.width + self.margin.left + self.margin.right).attr("height", self.height + self.margin.top + self.margin.bottom);
@@ -9729,6 +9444,12 @@ function open_editor(self, node_set, name, description, cluster_kind, kind_optio
           nodes_to_add = underscore__WEBPACK_IMPORTED_MODULE_1__["default"].flatten(underscore__WEBPACK_IMPORTED_MODULE_1__["default"].map(nodes_to_add, function (d) {
             return self.fetch_sequence_objects_for_pid(d);
           }));
+        } else {
+          nodes_to_add = underscore__WEBPACK_IMPORTED_MODULE_1__["default"].map(nodes_to_add, function (d) {
+            return {
+              id: d
+            };
+          });
         }
         underscore__WEBPACK_IMPORTED_MODULE_1__["default"].each(nodes_to_add, function (n) {
           if (!(n.id in existing_ids) && n.id in valid_ids) {
@@ -12481,8 +12202,8 @@ var HIVTxNetwork = /*#__PURE__*/function () {
           return g.name === name;
         });
         if (idx >= 0) {
-          this.defined_priority_groups.splice(idx, 1);
           this.priority_groups_update_node_sets(name, "delete");
+          this.defined_priority_groups.splice(idx, 1);
           if (update_table) {
             clustersOfInterest.draw_priority_set_table(this);
           }
@@ -12679,8 +12400,43 @@ var HIVTxNetwork = /*#__PURE__*/function () {
     this.using_time_filter = null;
   }
 
-  /** initialize UI/UX elements */
+  /**
+   * Groups all edges in `this.json.Edges` by the primary key of their source and target nodes.
+   * The result is returned
+   * An edge will appear in the list for its source's primary key and its target's primary key.
+   */
   _createClass(HIVTxNetwork, [{
+    key: "group_edges_by_primary_key",
+    value: function group_edges_by_primary_key() {
+      var _this7 = this;
+      var edges_by_primary_key = {};
+      _.each(this.json.Edges, function (edge) {
+        try {
+          var source_pk = _this7.primary_key(_this7.json.Nodes[edge.source]);
+          var target_pk = _this7.primary_key(_this7.json.Nodes[edge.target]);
+          if (!edges_by_primary_key[source_pk]) {
+            edges_by_primary_key[source_pk] = [];
+          }
+          edges_by_primary_key[source_pk].push(edge);
+          if (source_pk !== target_pk) {
+            if (!edges_by_primary_key[target_pk]) {
+              edges_by_primary_key[target_pk] = [];
+            }
+            // Add only if it's not already there (to avoid duplicates if an edge is within the same PK group but processed twice)
+            // However, the current logic adds it once for source and once for target if different, which is fine.
+            // If an edge is between two nodes of the same PK, it's added only once via the source_pk.
+            edges_by_primary_key[target_pk].push(edge);
+          }
+        } catch (err) {
+          console.log(err);
+          throw err;
+        }
+      });
+      return edges_by_primary_key;
+    }
+
+    /** initialize UI/UX elements */
+  }, {
     key: "initialize_ui_ux_elements",
     value: function initialize_ui_ux_elements() {
       /** define a D3 behavior to make node labels draggable */
@@ -12734,7 +12490,7 @@ var HIVTxNetwork = /*#__PURE__*/function () {
   }, {
     key: "tabulate_multiple_sequences",
     value: function tabulate_multiple_sequences() {
-      var _this7 = this;
+      var _this8 = this;
       /**
           generate a primary key to node ID map
           [primary key] => [array of IDs]
@@ -12742,17 +12498,17 @@ var HIVTxNetwork = /*#__PURE__*/function () {
       this.primary_key_list = {};
       this.has_multiple_sequences = false;
       _.each(this.json.Nodes, function (n) {
-        var p_key = _this7.primary_key(n);
-        if (!(p_key in _this7.primary_key_list)) {
-          _this7.primary_key_list[p_key] = [n];
+        var p_key = _this8.primary_key(n);
+        if (!(p_key in _this8.primary_key_list)) {
+          _this8.primary_key_list[p_key] = [n];
         } else {
-          _this7.primary_key_list[p_key].push(n);
-          _this7.has_multiple_sequences = true;
-          _this7.legend_multiple_sequences = true;
+          _this8.primary_key_list[p_key].push(n);
+          _this8.has_multiple_sequences = true;
+          _this8.legend_multiple_sequences = true;
         }
-        if (!_this7.legend_multiple_sequences) {
+        if (!_this8.legend_multiple_sequences) {
           if (n[kGlobals.network.AliasedSequencesID]) {
-            _this7.legend_multiple_sequences = true;
+            _this8.legend_multiple_sequences = true;
           }
         }
       });
@@ -12905,7 +12661,7 @@ var HIVTxNetwork = /*#__PURE__*/function () {
   }, {
     key: "process_multiple_sequences",
     value: function process_multiple_sequences(reduce_distance_within, reduce_distance_between) {
-      var _this8 = this;
+      var _this9 = this;
       if (this.has_multiple_sequences && this.isPrimaryGraph) {
         reduce_distance_within = reduce_distance_within || 0.000001;
         reduce_distance_between = reduce_distance_between || 0.015;
@@ -12921,7 +12677,7 @@ var HIVTxNetwork = /*#__PURE__*/function () {
         });
         var nodes_to_delete = new Set();
         _.each(clusters, function (cluster, cluster_index) {
-          var entity_list = _this8.unique_entity_list(cluster);
+          var entity_list = _this9.unique_entity_list(cluster);
           if (entity_list.length == 1) {
             _.each(cluster, function (ncn) {
               nodes_to_delete.add(ncn.id);
@@ -12942,7 +12698,7 @@ var HIVTxNetwork = /*#__PURE__*/function () {
             })) {
               return;
             }
-            var uel = _this8.unique_entity_object_list(cluster);
+            var uel = _this9.unique_entity_object_list(cluster);
             _.each(uel, function (dup_seqs, uid) {
               if (dup_seqs.length > 1) {
                 (function () {
@@ -13093,7 +12849,7 @@ var HIVTxNetwork = /*#__PURE__*/function () {
   }, {
     key: "simplify_multisequence_cluster",
     value: function simplify_multisequence_cluster(filtered_json) {
-      var _this9 = this;
+      var _this10 = this;
       /**
               20241030 SLKP
               Perform a greedy collapse of all the sequences that map to the same primary key
@@ -13101,7 +12857,7 @@ var HIVTxNetwork = /*#__PURE__*/function () {
           */
 
       var reduced_nodes = _.pairs(_.mapObject(this.unique_entity_object_list(filtered_json.Nodes), function (v) {
-        return _this9.aggregate_indvidual_level_records(v)[0];
+        return _this10.aggregate_indvidual_level_records(v)[0];
       }));
       var uid_index = _.object(_.map(reduced_nodes, function (d, i) {
         return [d[0], i];
@@ -13264,11 +13020,11 @@ var HIVTxNetwork = /*#__PURE__*/function () {
     key: "map_ids_to_objects",
     value: /** create a map between node IDs and node objects */
     function map_ids_to_objects() {
-      var _this10 = this;
+      var _this11 = this;
       if (!this.node_id_to_object) {
         this.node_id_to_object = {};
         _.each(this.json.Nodes, function (n, i) {
-          _this10.node_id_to_object[n.id] = n;
+          _this11.node_id_to_object[n.id] = n;
         });
       }
     }
@@ -13492,7 +13248,7 @@ var HIVTxNetwork = /*#__PURE__*/function () {
   }, {
     key: "priority_groups_validate",
     value: function priority_groups_validate(groups, auto_extend) {
-      var _this11 = this;
+      var _this12 = this;
       if (_.some(groups, function (g) {
         return !g.validated;
       })) {
@@ -13500,17 +13256,35 @@ var HIVTxNetwork = /*#__PURE__*/function () {
             these have been precomputed elsewhere (priority_score)
         */
 
-        var priority_subclusters = _.map(_.filter(_.flatten(_.map(_.flatten(_.map(this.clusters, function (c) {
-          return _.filter(_.filter(c.subclusters, function (sc) {
-            return sc.priority_score.length;
-          }));
-        })), function (d) {
-          return d.priority_score;
-        }), 1), function (d) {
-          return d.length >= _this11.CDC_data["autocreate-priority-set-size"];
-        }), function (d) {
+        /*const priority_subclusters = _.map(
+          _.filter(
+            _.flatten(
+              _.map(
+                _.flatten(
+                  _.map(this.clusters, (c) =>
+                    _.filter(
+                      _.filter(c.subclusters, (sc) => sc.priority_score.length)
+                    )
+                  )
+                ),
+                (d) => d.priority_score
+              ),
+              1
+            ),
+            (d) => d.length >= this.CDC_data["autocreate-priority-set-size"]
+          ),
+          (d) => new Set(d)
+        );*/
+
+        var priority_subclusters = _.chain(this.clusters).map("subclusters").flatten().filter(function (sc) {
+          return sc.priority_score.length;
+        }).map("priority_score").flatten(1).map(function (d) {
+          return _this12.unique_entity_list_from_ids(d);
+        }).filter(function (d) {
+          return d.length >= _this12.CDC_data["autocreate-priority-set-size"];
+        }).map(function (d) {
           return new Set(d);
-        });
+        }).value();
         this.map_ids_to_objects();
         var nodeID2idx = {};
         var edgesByNode = {};
@@ -13592,8 +13366,8 @@ var HIVTxNetwork = /*#__PURE__*/function () {
               var existing_clusters = new Set();
               _.each(pg.nodes, function (node) {
                 var nodeid = node.name;
-                if (nodeid in _this11.node_id_to_object) {
-                  var n = _this11.node_id_to_object[nodeid];
+                if (nodeid in _this12.node_id_to_object) {
+                  var n = _this12.node_id_to_object[nodeid];
                   existing_subclusters.add(n.subcluster_label);
                   existing_clusters.add(n.cluster);
                   pg.node_objects.push(n);
@@ -13610,8 +13384,8 @@ var HIVTxNetwork = /*#__PURE__*/function () {
                             the sequences belong
                         (3) they will be handled in the next step
                   */
-                  if (_this11.has_multiple_sequences) {
-                    var entities = _this11.primary_key_list[nodeid];
+                  if (_this12.has_multiple_sequences) {
+                    var entities = _this12.primary_key_list[nodeid];
                     if (entities) {
                       if (entities.length == 1) {
                         node.name = entities[0].id;
@@ -13693,7 +13467,7 @@ var HIVTxNetwork = /*#__PURE__*/function () {
                   if (pair[0].length) {
                     var desc = {};
                     _.each(pair[0], function (n) {
-                      var k = _this11.primary_key("id" in n ? n : {
+                      var k = _this12.primary_key("id" in n ? n : {
                         id: n.name
                       });
                       if (!(k in desc)) {
@@ -13724,14 +13498,14 @@ var HIVTxNetwork = /*#__PURE__*/function () {
               /** all the network nodes connected to the nodes in the CoI at 1.5%; directly or indirectly*/
 
               if (!traversal_cache) {
-                traversal_cache = [misc.hivtrace_compute_adjacency_with_edges(_this11.json["Nodes"], _this11.json["Edges"], function (e) {
+                traversal_cache = [misc.hivtrace_compute_adjacency_with_edges(_this12.json["Nodes"], _this12.json["Edges"], function (e) {
                   return e.length <= 0.015;
-                }), misc.hivtrace_compute_adjacency_with_edges(_this11.json["Nodes"], _this11.json["Edges"], function (e) {
-                  return e.length <= _this11.subcluster_threshold;
+                }), misc.hivtrace_compute_adjacency_with_edges(_this12.json["Nodes"], _this12.json["Edges"], function (e) {
+                  return e.length <= _this12.subcluster_threshold;
                 })];
               }
               var saved_traversal_edges = [];
-              var node_set15 = _.flatten(misc.hivtrace_cluster_depthwise_traversal(_this11.json["Nodes"], _this11.json["Edges"], function (e) {
+              var node_set15 = _.flatten(misc.hivtrace_cluster_depthwise_traversal(_this12.json["Nodes"], _this12.json["Edges"], function (e) {
                 return e.length <= 0.015;
               }, saved_traversal_edges, pg.node_objects, null, traversal_cache[0]));
               var saved_traversal_edges_sub = [];
@@ -13739,8 +13513,8 @@ var HIVTxNetwork = /*#__PURE__*/function () {
               /** all the network nodes connected to the nodes in the subcluster threshold (0.5%);
                   also saves all the edges that have been taken if auto_extend is true  */
 
-              var node_set_subcluster = _.flatten(misc.hivtrace_cluster_depthwise_traversal(_this11.json["Nodes"], _this11.json["Edges"], function (e) {
-                return e.length <= _this11.subcluster_threshold;
+              var node_set_subcluster = _.flatten(misc.hivtrace_cluster_depthwise_traversal(_this12.json["Nodes"], _this12.json["Edges"], function (e) {
+                return e.length <= _this12.subcluster_threshold;
               }, saved_traversal_edges_sub, pg.node_objects, null, traversal_cache[1]));
 
               //console.log (saved_traversal_edges)
@@ -13749,8 +13523,8 @@ var HIVTxNetwork = /*#__PURE__*/function () {
 
               /** all the network nodes connected to the nodes in the CoI at 1.5%; only directly */
 
-              var json15 = _this11.extract_single_cluster(node_set15, function (e) {
-                return e.length <= 0.015 && (my_nodeset.has(_this11.json["Nodes"][e.target].id) || my_nodeset.has(_this11.json["Nodes"][e.source].id));
+              var json15 = _this12.extract_single_cluster(node_set15, function (e) {
+                return e.length <= 0.015 && (my_nodeset.has(_this12.json["Nodes"][e.target].id) || my_nodeset.has(_this12.json["Nodes"][e.source].id));
               },
               //null,
               true, saved_traversal_edges);
@@ -13764,11 +13538,11 @@ var HIVTxNetwork = /*#__PURE__*/function () {
                   }
                 });
               });
-              var current_time = _this11.get_reference_date();
+              var current_time = _this12.get_reference_date();
 
               /**  extract the 1.5% cluster network object */
-              var json_subcluster = _this11.extract_single_cluster(node_set_subcluster, function (e) {
-                return e.length <= _this11.subcluster_threshold && (my_nodeset.has(_this11.json["Nodes"][e.target].id) || my_nodeset.has(_this11.json["Nodes"][e.source].id));
+              var json_subcluster = _this12.extract_single_cluster(node_set_subcluster, function (e) {
+                return e.length <= _this12.subcluster_threshold && (my_nodeset.has(_this12.json["Nodes"][e.target].id) || my_nodeset.has(_this12.json["Nodes"][e.source].id));
               }, true, saved_traversal_edges_sub);
               var direct_subcluster = new Set();
               var direct_subcluster_new = new Set();
@@ -13780,7 +13554,7 @@ var HIVTxNetwork = /*#__PURE__*/function () {
                 _.each([e.source, e.target], function (nid) {
                   if (!my_nodeset.has(json_subcluster["Nodes"][nid].id)) {
                     direct_subcluster.add(json_subcluster["Nodes"][nid].id);
-                    if (_this11.filter_by_date(pg.modified || pg.created, timeDateUtil._networkCDCDateField, current_time, json_subcluster["Nodes"][nid], true)) {
+                    if (_this12.filter_by_date(pg.modified || pg.created, timeDateUtil._networkCDCDateField, current_time, json_subcluster["Nodes"][nid], true)) {
                       direct_subcluster_new.add(json_subcluster["Nodes"][nid].id);
                     }
                   }
@@ -13798,7 +13572,7 @@ var HIVTxNetwork = /*#__PURE__*/function () {
                 _.each(ns[0], function (n) {
                   if (my_nodeset.has(n.id)) return;
                   var key;
-                  if (_this11.filter_by_date(pg.modified || pg.created, timeDateUtil._networkCDCDateField, current_time, n, true)) {
+                  if (_this12.filter_by_date(pg.modified || pg.created, timeDateUtil._networkCDCDateField, current_time, n, true)) {
                     key = "new";
                   } else {
                     key = "existing";
@@ -13813,13 +13587,13 @@ var HIVTxNetwork = /*#__PURE__*/function () {
                 return nodesets;
               });
               if (auto_extend && pg.tracking !== kGlobals.CDCCOITrackingOptionsNone) {
-                var added_nodes = _this11.auto_expand_pg_handler(pg, nodeID2idx, edgesByNode);
+                var added_nodes = _this12.auto_expand_pg_handler(pg, nodeID2idx, edgesByNode);
 
                 //console.log (pg.name, _.map ([...added_nodes], (n)=>this.json.Nodes[n]));
 
                 if (added_nodes.size) {
                   _.each(_toConsumableArray(added_nodes), function (nid) {
-                    var n = _this11.json.Nodes[nid];
+                    var n = _this12.json.Nodes[nid];
                     pg.nodes.push({
                       name: n.id,
                       added: current_time,
@@ -13832,15 +13606,15 @@ var HIVTxNetwork = /*#__PURE__*/function () {
                   pg.autoexpanded = true;
                   pg.pending = true;
                   pg.expanded = added_nodes.size;
-                  pg.modified = _this11.get_reference_date();
+                  pg.modified = _this12.get_reference_date();
                 }
               }
 
               /** check to see the CoI meets priority definitions */
 
-              var node_set = new Set(_.map(pg.nodes, function (n) {
+              var node_set = new Set(_this12.unique_entity_list_from_ids(_.map(pg.nodes, function (n) {
                 return n.name;
-              }));
+              })));
               pg.meets_priority_def = _.some(priority_subclusters, function (ps) {
                 return _.filter(_toConsumableArray(ps), function (psi) {
                   return node_set.has(psi);
@@ -13853,12 +13627,12 @@ var HIVTxNetwork = /*#__PURE__*/function () {
                 field_name: "cluster_dx_recent36_mo",
                 months: 36
               }];
-              var ref_date = _this11.get_reference_date();
+              var ref_date = _this12.get_reference_date();
               var _loop = function _loop() {
                 var dx = _recent_dx_cutoffs[_i];
-                var cutoff = timeDateUtil.n_months_ago(_this11.get_reference_date(), dx.months);
-                pg[dx.field_name] = _this11.unique_entity_list(_.filter(pg.node_objects, function (n) {
-                  return _this11.filter_by_date(cutoff, timeDateUtil._networkCDCDateField, ref_date, n, false);
+                var cutoff = timeDateUtil.n_months_ago(_this12.get_reference_date(), dx.months);
+                pg[dx.field_name] = _this12.unique_entity_list(_.filter(pg.node_objects, function (n) {
+                  return _this12.filter_by_date(cutoff, timeDateUtil._networkCDCDateField, ref_date, n, false);
                 })).length;
               };
               for (var _i = 0, _recent_dx_cutoffs = recent_dx_cutoffs; _i < _recent_dx_cutoffs.length; _i++) {
@@ -13870,7 +13644,7 @@ var HIVTxNetwork = /*#__PURE__*/function () {
               var currDate = timeDateUtil.getCurrentDate();
               var history_entry = {
                 date: currDate,
-                size: _this11.priority_group_entity_count(pg),
+                size: _this12.priority_group_entity_count(pg),
                 // TODO determine new nodes
                 new_nodes: 0,
                 national_priority: pg.meets_priority_def,
@@ -14042,15 +13816,15 @@ var HIVTxNetwork = /*#__PURE__*/function () {
   }, {
     key: "load_priority_sets",
     value: function load_priority_sets(url, is_writeable) {
-      var _this12 = this;
+      var _this13 = this;
       d3.json(url, function (error, results) {
         if (error) {
           throw Error("Failed loading cluster of interest file " + error.responseURL);
         } else {
           var latest_date = new Date();
           latest_date.setFullYear(1900);
-          _this12.defined_priority_groups = _.clone(results);
-          _.each(_this12.defined_priority_groups, function (pg) {
+          _this13.defined_priority_groups = _.clone(results);
+          _.each(_this13.defined_priority_groups, function (pg) {
             _.each(pg.nodes, function (n) {
               try {
                 n.added = timeDateUtil.DateFormats[0].parse(n.added);
@@ -14062,30 +13836,30 @@ var HIVTxNetwork = /*#__PURE__*/function () {
               }
             });
           });
-          _this12.priority_set_table_writeable = is_writeable === "writeable";
-          _this12.priority_groups_validate(_this12.defined_priority_groups, _this12._is_CDC_auto_mode);
-          _this12.auto_create_priority_sets = [];
+          _this13.priority_set_table_writeable = is_writeable === "writeable";
+          _this13.priority_groups_validate(_this13.defined_priority_groups, _this13._is_CDC_auto_mode);
+          _this13.auto_create_priority_sets = [];
           /**
               check if the system needs to create/expand CoI
           */
-          var today_string = timeDateUtil.DateFormats[0](_this12.get_reference_date());
-          _this12.map_ids_to_objects();
-          if (_this12._is_CDC_auto_mode) {
-            _.each(_this12.clusters, function (cluster_data, cluster_id) {
+          var today_string = timeDateUtil.DateFormats[0](_this13.get_reference_date());
+          _this13.map_ids_to_objects();
+          if (_this13._is_CDC_auto_mode) {
+            _.each(_this13.clusters, function (cluster_data, cluster_id) {
               _.each(cluster_data.subclusters, function (subcluster_data) {
                 _.each(subcluster_data.priority_score, function (priority_score, i) {
-                  var priority_entities = _this12.unique_entity_list(_.map(priority_score, function (d) {
+                  var priority_entities = _this13.unique_entity_list(_.map(priority_score, function (d) {
                     return {
                       id: d
                     };
                   }));
-                  if (priority_entities.length >= _this12.CDC_data["autocreate-priority-set-size"]) {
+                  if (priority_entities.length >= _this13.CDC_data["autocreate-priority-set-size"]) {
                     // only generate a new set if it doesn't match what is already there
                     var node_set = {};
                     _.each(subcluster_data.recent_nodes[i], function (n) {
                       node_set[n] = 1;
                     });
-                    var matched_groups = _.filter(_.filter(_this12.defined_priority_groups, function (pg) {
+                    var matched_groups = _.filter(_.filter(_this13.defined_priority_groups, function (pg) {
                       return pg.kind in kGlobals.CDCCOICanAutoExpand && pg.createdBy === kGlobals.CDCCOICreatedBySystem && pg.tracking === kGlobals.CDCCOITrackingOptionsDefault;
                     }), function (pg) {
                       var matched = _.countBy(_.map(pg.nodes, function (pn) {
@@ -14096,12 +13870,12 @@ var HIVTxNetwork = /*#__PURE__*/function () {
                     if (matched_groups.length >= 1) {
                       return;
                     }
-                    var autoname = _this12.generateClusterOfInterestID(subcluster_data.cluster_id);
-                    _this12.auto_create_priority_sets.push({
+                    var autoname = _this13.generateClusterOfInterestID(subcluster_data.cluster_id);
+                    _this13.auto_create_priority_sets.push({
                       name: autoname,
                       description: "Automatically created cluster of interest " + autoname,
                       nodes: _.map(subcluster_data.recent_nodes[i], function (n) {
-                        return _this12.priority_group_node_record(n, _this12.get_reference_date());
+                        return _this13.priority_group_node_record(n, _this13.get_reference_date());
                       }),
                       created: today_string,
                       kind: kGlobals.CDCCOIKindAutomaticCreation,
@@ -14116,32 +13890,32 @@ var HIVTxNetwork = /*#__PURE__*/function () {
               });
             });
           }
-          if (_this12.auto_create_priority_sets.length) {
-            var _this12$defined_prior;
+          if (_this13.auto_create_priority_sets.length) {
+            var _this13$defined_prior;
             // SLKP 20200727 now check to see if any of the priority sets
             // need to be auto-generated
             //console.log (this.auto_create_priority_sets);
-            (_this12$defined_prior = _this12.defined_priority_groups).push.apply(_this12$defined_prior, _toConsumableArray(_this12.auto_create_priority_sets));
+            (_this13$defined_prior = _this13.defined_priority_groups).push.apply(_this13$defined_prior, _toConsumableArray(_this13.auto_create_priority_sets));
           }
-          var autocreated = _this12.defined_priority_groups.filter(function (pg) {
+          var autocreated = _this13.defined_priority_groups.filter(function (pg) {
               return pg.autocreated;
             }).length,
-            autoexpanded = _this12.defined_priority_groups.filter(function (pg) {
+            autoexpanded = _this13.defined_priority_groups.filter(function (pg) {
               return pg.autoexpanded;
             }).length,
             automatic_action_taken = autocreated + autoexpanded > 0,
-            left_to_review = _this12.defined_priority_groups.filter(function (pg) {
+            left_to_review = _this13.defined_priority_groups.filter(function (pg) {
               return pg.pending;
             }).length;
           if (automatic_action_taken) {
-            _this12.warning_string += "<br/>Automatically created <b>" + autocreated + "</b> and expanded <b>" + autoexpanded + "</b> clusters of interest." + (left_to_review > 0 ? " <b>Please review <span id='banner_coi_counts'></span> clusters in the <code>Clusters of Interest</code> tab.</b><br>" : "");
-            _this12.display_warning(_this12.warning_string, true);
+            _this13.warning_string += "<br/>Automatically created <b>" + autocreated + "</b> and expanded <b>" + autoexpanded + "</b> clusters of interest." + (left_to_review > 0 ? " <b>Please review <span id='banner_coi_counts'></span> clusters in the <code>Clusters of Interest</code> tab.</b><br>" : "");
+            _this13.display_warning(_this13.warning_string, true);
           }
-          var tab_pill = _this12.get_ui_element_selector_by_role("priority_set_counts", true);
-          if (!_this12.priority_set_table_writeable) {
+          var tab_pill = _this13.get_ui_element_selector_by_role("priority_set_counts", true);
+          if (!_this13.priority_set_table_writeable) {
             var rationale = is_writeable === "old" ? "the network is <b>older</b> than some of the Clusters of Interest" : "the network was ran in <b>standalone</b> mode so no data is stored";
-            _this12.warning_string += "<p class=\"alert alert-danger\"class=\"alert alert-danger\">READ-ONLY mode for Clusters of Interest is enabled because ".concat(rationale, ". None of the changes to clustersOI made during this session will be recorded.</p>");
-            _this12.display_warning(_this12.warning_string, true);
+            _this13.warning_string += "<p class=\"alert alert-danger\"class=\"alert alert-danger\">READ-ONLY mode for Clusters of Interest is enabled because ".concat(rationale, ". None of the changes to clustersOI made during this session will be recorded.</p>");
+            _this13.display_warning(_this13.warning_string, true);
             if (tab_pill) {
               d3.select(tab_pill).text("Read-only");
             }
@@ -14149,22 +13923,22 @@ var HIVTxNetwork = /*#__PURE__*/function () {
             d3.select(tab_pill).text(left_to_review);
             d3.select("#banner_coi_counts").text(left_to_review);
           }
-          _this12.priority_groups_validate(_this12.defined_priority_groups);
+          _this13.priority_groups_validate(_this13.defined_priority_groups);
           // Update the DB with the new ClusterOI
-          var auto_create_priority_sets_names = _this12.auto_create_priority_sets.map(function (pg) {
+          var auto_create_priority_sets_names = _this13.auto_create_priority_sets.map(function (pg) {
             return pg.name;
           });
-          _.each(_this12.defined_priority_groups, function (pg) {
+          _.each(_this13.defined_priority_groups, function (pg) {
             if (pg.name in auto_create_priority_sets_names) {
-              _this12.priority_groups_update_node_sets(pg.name, "insert");
+              _this13.priority_groups_update_node_sets(pg.name, "insert");
             } else {
               // update all ClusterOI (not only just expanded ones, since we need to update ClusterOI history)
-              _this12.priority_groups_update_node_sets(pg.name, "update");
+              _this13.priority_groups_update_node_sets(pg.name, "update");
             }
           });
-          clustersOfInterest.draw_priority_set_table(_this12);
-          if (_this12.showing_diff && _this12.has_network_attribute("subcluster_or_priority_node")) {
-            _this12.handle_attribute_categorical("subcluster_or_priority_node");
+          clustersOfInterest.draw_priority_set_table(_this13);
+          if (_this13.showing_diff && _this13.has_network_attribute("subcluster_or_priority_node")) {
+            _this13.handle_attribute_categorical("subcluster_or_priority_node");
           }
           //this.update();
         }
@@ -14203,16 +13977,16 @@ var HIVTxNetwork = /*#__PURE__*/function () {
   }, {
     key: "populate_predefined_attribute",
     value: function populate_predefined_attribute(computed, key) {
-      var _this13 = this;
+      var _this14 = this;
       if (_.isFunction(computed)) {
         computed = computed(this);
       }
       if (!computed["depends"] || _.every(computed["depends"], function (d) {
-        return _.has(_this13.json[kGlobals.network.GraphAttrbuteID], d);
+        return _.has(_this14.json[kGlobals.network.GraphAttrbuteID], d);
       })) {
         this.inject_attribute_description(key, computed);
         _.each(this.json.Nodes, function (node) {
-          HIVTxNetwork.inject_attribute_node_value_by_id(node, key, computed["map"](node, _this13));
+          HIVTxNetwork.inject_attribute_node_value_by_id(node, key, computed["map"](node, _this14));
         });
 
         // add unique values
@@ -14223,12 +13997,12 @@ var HIVTxNetwork = /*#__PURE__*/function () {
           if (computed.type === "Date") {
             _.each(this.json.Nodes, function (n) {
               try {
-                uniq_value_set.add(_this13.attribute_node_value_by_id(n, key).getTime());
+                uniq_value_set.add(_this14.attribute_node_value_by_id(n, key).getTime());
               } catch (_unused3) {}
             });
           } else {
             _.each(this.json.Nodes, function (n) {
-              return uniq_value_set.add(_this13.attribute_node_value_by_id(n, key, computed.type === "Number"));
+              return uniq_value_set.add(_this14.attribute_node_value_by_id(n, key, computed.type === "Number"));
             });
           }
           this.uniqValues[key] = _toConsumableArray(uniq_value_set);
@@ -14330,7 +14104,7 @@ var HIVTxNetwork = /*#__PURE__*/function () {
   }, {
     key: "define_attribute_binned_vl",
     value: function define_attribute_binned_vl(field, title) {
-      var _this14 = this;
+      var _this15 = this;
       var vl_bins = ["<200", "200-10000", ">10000"];
       return {
         depends: [field],
@@ -14341,7 +14115,7 @@ var HIVTxNetwork = /*#__PURE__*/function () {
           return d3.scale.ordinal().domain(vl_bins.concat([kGlobals.missing.label])).range(_.union(kGlobals.SequentialColor[3], [kGlobals.missing.color]));
         },
         map: function map(node) {
-          var vl_value = _this14.attribute_node_value_by_id(node, field, true);
+          var vl_value = _this15.attribute_node_value_by_id(node, field, true);
           if (vl_value !== kGlobals.missing.label) {
             if (vl_value <= 200) {
               return vl_bins[0];
@@ -14364,7 +14138,7 @@ var HIVTxNetwork = /*#__PURE__*/function () {
   }, {
     key: "define_attribute_vl_interpretaion",
     value: function define_attribute_vl_interpretaion() {
-      var _this15 = this;
+      var _this16 = this;
       return {
         depends: ["vl_recent_value", "result_interpretation"],
         label: "Viral load result interpretation",
@@ -14390,8 +14164,8 @@ var HIVTxNetwork = /*#__PURE__*/function () {
         },
         label_format: d3.format(",.0f"),
         map: function map(node) {
-          var vl_value = _this15.attribute_node_value_by_id(node, "vl_recent_value", true);
-          var result_interpretation = _this15.attribute_node_value_by_id(node, "result_interpretation");
+          var vl_value = _this16.attribute_node_value_by_id(node, "vl_recent_value", true);
+          var result_interpretation = _this16.attribute_node_value_by_id(node, "result_interpretation");
           if (vl_value !== kGlobals.missing.label || result_interpretation !== kGlobals.missing.label) {
             if (result_interpretation !== kGlobals.missing.label) {
               if (result_interpretation === "<") {
@@ -14449,7 +14223,7 @@ var HIVTxNetwork = /*#__PURE__*/function () {
   }, {
     key: "define_attribute_dx_years",
     value: function define_attribute_dx_years(relative, label) {
-      var _this16 = this;
+      var _this17 = this;
       return {
         depends: [timeDateUtil._networkCDCDateField],
         label: label,
@@ -14457,10 +14231,10 @@ var HIVTxNetwork = /*#__PURE__*/function () {
         label_format: relative ? d3.format(".2f") : d3.format(".0f"),
         map: function map(node) {
           try {
-            var value = _this16.parse_dates(_this16.attribute_node_value_by_id(node, timeDateUtil._networkCDCDateField));
+            var value = _this17.parse_dates(_this17.attribute_node_value_by_id(node, timeDateUtil._networkCDCDateField));
             if (value) {
               if (relative) {
-                value = (_this16.get_reference_date() - value) / 31536000000;
+                value = (_this17.get_reference_date() - value) / 31536000000;
               } else value = String(value.getFullYear());
             } else {
               value = kGlobals.missing.label;
@@ -14520,7 +14294,7 @@ var HIVTxNetwork = /*#__PURE__*/function () {
   }, {
     key: "define_attribute_sequence_count",
     value: function define_attribute_sequence_count(label) {
-      var _this17 = this;
+      var _this18 = this;
       return {
         depends: [],
         label: label,
@@ -14530,8 +14304,8 @@ var HIVTxNetwork = /*#__PURE__*/function () {
           if (node[kGlobals.network.AliasedSequencesID]) {
             return node[kGlobals.network.AliasedSequencesID].length;
           }
-          if (_this17.has_multiple_sequences) {
-            return _this17.fetch_sequences_for_pid(_this17.primary_key(node)).length;
+          if (_this18.has_multiple_sequences) {
+            return _this18.fetch_sequences_for_pid(_this18.primary_key(node)).length;
           }
           return 1;
         },
@@ -14550,7 +14324,7 @@ var HIVTxNetwork = /*#__PURE__*/function () {
   }, {
     key: "define_attribute_age_dx",
     value: function define_attribute_age_dx() {
-      var _this18 = this;
+      var _this19 = this;
       return {
         depends: ["age_dx"],
         overwrites: "age_dx",
@@ -14561,7 +14335,7 @@ var HIVTxNetwork = /*#__PURE__*/function () {
           return d3.scale.ordinal().domain(["<13", "13-19", "20-29", "30-39", "40-49", "50-59", "�60", kGlobals.missing.label]).range(["#b10026", "#e31a1c", "#fc4e2a", "#fd8d3c", "#feb24c", "#fed976", "#ffffb2", "#636363"]);
         },
         map: function map(node) {
-          var vl_value = _this18.attribute_node_value_by_id(node, "age_dx");
+          var vl_value = _this19.attribute_node_value_by_id(node, "age_dx");
           if (vl_value === ">=60") {
             return "�60";
           }
@@ -14660,7 +14434,7 @@ var HIVTxNetwork = /*#__PURE__*/function () {
   }, {
     key: "aggregate_indvidual_level_records",
     value: function aggregate_indvidual_level_records(node_list) {
-      var _this19 = this;
+      var _this20 = this;
       node_list = node_list || this.json.Nodes;
       var aggregator = function aggregator(values, key, record, store_key) {
         var unique_values = _.countBy(values, function (dn) {
@@ -14679,7 +14453,7 @@ var HIVTxNetwork = /*#__PURE__*/function () {
       };
       if (this.has_multiple_sequences) {
         var binned = _.groupBy(node_list, function (n) {
-          return _this19.primary_key(n);
+          return _this20.primary_key(n);
         });
         var new_list = [];
         _.each(binned, function (values, key) {
@@ -14688,7 +14462,7 @@ var HIVTxNetwork = /*#__PURE__*/function () {
           } else {
             var new_record = _.clone(values[0]);
             new_record[kGlobals.network.NodeAttributeID] = _.object(_.map(new_record[kGlobals.network.NodeAttributeID], function (d, k) {
-              var proto = _this19.json[kGlobals.network.GraphAttrbuteID][k];
+              var proto = _this20.json[kGlobals.network.GraphAttrbuteID][k];
               var unique_values = _.countBy(values, function (dn) {
                 return dn[kGlobals.network.NodeAttributeID][k];
               });
@@ -16352,6 +16126,428 @@ module.exports.scatterPlot = hivtrace_render_scatterplot;
 
 /***/ }),
 
+/***/ "./src/socialNetworkLoader.js":
+/*!************************************!*\
+  !*** ./src/socialNetworkLoader.js ***!
+  \************************************/
+/***/ (function(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "load_nodes_edges": function() { return /* binding */ load_nodes_edges; }
+/* harmony export */ });
+/* harmony import */ var underscore__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! underscore */ "./node_modules/underscore/modules/index-all.js");
+/* harmony import */ var d3__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! d3 */ "./node_modules/d3/d3-exposed.js");
+/* harmony import */ var d3__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(d3__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var _hiv_tx_network_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./hiv_tx_network.js */ "./src/hiv_tx_network.js");
+/* harmony import */ var _hiv_tx_network_js__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_hiv_tx_network_js__WEBPACK_IMPORTED_MODULE_2__);
+/* harmony import */ var _globals_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./globals.js */ "./src/globals.js");
+/* harmony import */ var _globals_js__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(_globals_js__WEBPACK_IMPORTED_MODULE_3__);
+/* harmony import */ var _misc_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./misc.js */ "./src/misc.js");
+/* harmony import */ var _misc_js__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(_misc_js__WEBPACK_IMPORTED_MODULE_4__);
+/* harmony import */ var _clustersOfInterest_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./clustersOfInterest.js */ "./src/clustersOfInterest.js");
+/* harmony import */ var _tables_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./tables.js */ "./src/tables.js");
+/* harmony import */ var _tables_js__WEBPACK_IMPORTED_MODULE_6___default = /*#__PURE__*/__webpack_require__.n(_tables_js__WEBPACK_IMPORTED_MODULE_6__);
+/* harmony import */ var _timeDateUtil_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./timeDateUtil.js */ "./src/timeDateUtil.js");
+/* harmony import */ var _timeDateUtil_js__WEBPACK_IMPORTED_MODULE_7___default = /*#__PURE__*/__webpack_require__.n(_timeDateUtil_js__WEBPACK_IMPORTED_MODULE_7__);
+
+
+
+
+
+
+
+
+// import * as helpers from "./helpers.js"; // Not directly used in the moved functions, but good to keep if sub-functions might need it
+
+/**
+ * Injects attributes from a source object into a target node object.
+ * Skips the attribute specified by `index_id`.
+ * @param {Object} target - The node object to which attributes will be injected.
+ * @param {Object} n_attr - An object containing attribute key-value pairs.
+ * @param {string} index_id - The key in `n_attr` that represents the node's primary identifier and should be skipped.
+ */
+function handle_node_attributes_internal(target, n_attr, index_id) {
+  underscore__WEBPACK_IMPORTED_MODULE_0__["default"].each(n_attr, function (attribute_value, attribute_key) {
+    if (attribute_key !== index_id) {
+      _hiv_tx_network_js__WEBPACK_IMPORTED_MODULE_2__.HIVTxNetwork.inject_attribute_node_value_by_id(target, attribute_key, attribute_value);
+    }
+  });
+}
+
+/**
+ * Creates a new node, injects its attributes, and adds it to the network.
+ * @param {Object} tx_network - The main HIVTrace network object.
+ * @param {string} node_name - The ID/name of the new node.
+ * @param {Object} n_attr - Attributes for the new node.
+ * @param {string} index_id - The primary identifier key in `n_attr`.
+ * @param {Object} node_name_2_id - A map from node name to its index in `tx_network.json.Nodes`.
+ * @param {Array<Object>} new_nodes_array - An array to which the newly created node object will be pushed.
+ * @param {string} annotation - Annotation string for the new node (e.g., "Social").
+ */
+function inject_new_node_internal(tx_network, node_name, n_attr, index_id, node_name_2_id, new_nodes_array, annotation, existing_entities) {
+  var new_node = {
+    node_class: "injected",
+    node_annotation: annotation,
+    attributes: [],
+    degree: 0
+  };
+  new_node[_globals_js__WEBPACK_IMPORTED_MODULE_3__.network.NodeAttributeID] = {};
+  new_node.id = node_name;
+  handle_node_attributes_internal(new_node, n_attr, index_id);
+  node_name_2_id[node_name] = tx_network.json.Nodes.length;
+  tx_network.json.Nodes.push(new_node);
+  new_nodes_array.push(new_node);
+
+  // Record the primary ID of the added node in existing_entities
+  var pk = tx_network.primary_key(new_node);
+  if (pk in existing_entities) {
+    existing_entities[pk].push(new_node);
+  } else {
+    existing_entities[pk] = [new_node];
+  }
+}
+
+/**
+ * Opens an exclusive tab view for a social network or a subset of it.
+ * @param {Object} tx_network - The main HIVTrace network object.
+ * @param {string|number} id - The cluster ID or identifier for the view.
+ * @param {Function} node_filter - A function to filter nodes for this view.
+ * @param {Array<string>} labeled_links - An array of link types to be labeled.
+ * @param {Object<string, number>} shown_types - An object indicating which link types are shown (1 for shown).
+ * @param {Function} title_fn - A function that takes `id` and returns the title string for the view.
+ */
+function social_view_handler_internal(tx_network, id, node_filter, labeled_links, shown_types, title_fn) {
+  tx_network.open_exclusive_tab_view(id, node_filter, title_fn,
+  // title is a function here
+  tx_network._social_view_options(labeled_links, shown_types), true);
+}
+
+/**
+ * Handles the click event for buttons that display subclusters with injected (e.g., social) network data.
+ * @param {Object} tx_network - The main HIVTrace network object.
+ * @param {Object} payload - Data associated with the subcluster (e.g., a subcluster object from `tx_network.clusters[...].subclusters`).
+ * @param {Function|null} edge_filter - An optional function to filter edges for the subcluster view.
+ *                                      If null, a default filter for subclusters is used.
+ * @param {Function|null} title_fn - An optional function to generate the title for the subcluster view.
+ * @param {string} annotation - Annotation string (e.g., "Social").
+ */
+function injected_column_subcluster_button_handler_internal(tx_network, payload, edge_filter, title_fn, annotation) {
+  function edge_filter_for_subclusters(edge) {
+    return _hiv_tx_network_js__WEBPACK_IMPORTED_MODULE_2__.HIVTxNetwork.is_edge_injected(edge) || edge.length <= tx_network.subcluster_threshold;
+  }
+  var subcluster_edges = [];
+  var direct_links_only = _misc_js__WEBPACK_IMPORTED_MODULE_4__.hivtrace_cluster_depthwise_traversal(tx_network.json.Nodes, tx_network.json.Edges, edge_filter || edge_filter_for_subclusters, subcluster_edges, payload.children);
+  var labeled_links = {},
+    shown_types = {};
+  // Ensure subcluster_edges[0] exists and is an array before iterating
+  if (subcluster_edges[0] && Array.isArray(subcluster_edges[0])) {
+    underscore__WEBPACK_IMPORTED_MODULE_0__["default"].each(subcluster_edges[0], function (edge_event) {
+      if (edge_event.edge_type) {
+        labeled_links[edge_event.edge_type] = 1;
+        shown_types[edge_event.edge_type] = 1;
+      }
+    });
+  }
+  labeled_links = underscore__WEBPACK_IMPORTED_MODULE_0__["default"].keys(labeled_links);
+  labeled_links.sort();
+  labeled_links.push("");
+  shown_types[""] = 1;
+  title_fn = title_fn || function (id) {
+    return "Subcluster " + payload.cluster_id + "[+ " + annotation + "]";
+  };
+  var cv = tx_network.view_subcluster(payload, direct_links_only[0], title_fn(payload.cluster_id),
+  // Call title_fn to get the string title
+  tx_network._social_view_options(labeled_links, shown_types), edge_filter_for_subclusters, true);
+  cv._refresh_subcluster_view(tx_network.today || _timeDateUtil_js__WEBPACK_IMPORTED_MODULE_7__.getCurrentDate());
+}
+
+/**
+ * Loads new nodes and edges (typically social network data) into the existing HIV transmission network.
+ * It updates attributes of existing nodes, adds new nodes and edges, and refreshes UI components like tables.
+ * @param {Object} tx_network - The main HIVTrace network object (`self` from clusternetwork.js).
+ * @param {Array<Object>} nodes_and_attributes - An array of objects, where each object represents a node and its attributes.
+ * @param {string} index_id - The attribute key in `nodes_and_attributes` that serves as the primary node identifier.
+ * @param {Array<Object>} edges_and_attributes - An array of objects, where each object represents an edge and its attributes (e.g., "Index", "Partner", "Contact").
+ * @param {string} [annotation_param="Social"] - An optional annotation string for the injected data.
+ * @returns {{nodes: Array<Object>, existing_nodes: number, edges: Object<string, number>}}
+ *           An object containing the list of newly added node objects, the count of existing nodes that were updated or involved, and a dictionary of edge types with their counts.
+ */
+function load_nodes_edges(tx_network, nodes_and_attributes, index_id, edges_and_attributes, annotation_param) {
+  var annotation = annotation_param || "Social";
+  var new_nodes = [];
+  var edge_types_dict = {};
+  var existing_nodes = 0;
+  var existing_network_nodes = {};
+  var node_name_2_id = {};
+  var existing_entities = {};
+  underscore__WEBPACK_IMPORTED_MODULE_0__["default"].each(tx_network.json.Nodes, function (n, i) {
+    existing_network_nodes[n.id] = n;
+    var pk = tx_network.primary_key(n);
+    if (pk in existing_entities) {
+      existing_entities[pk].push(n);
+    } else {
+      existing_entities[pk] = [n];
+    }
+    node_name_2_id[n.id] = i;
+  });
+  if (nodes_and_attributes && nodes_and_attributes.length) {
+    if (!(index_id in nodes_and_attributes[0])) {
+      throw Error(index_id + " is not one of the attributes in the imported node records");
+    }
+    underscore__WEBPACK_IMPORTED_MODULE_0__["default"].each(nodes_and_attributes[0], function (r, i) {
+      if (i !== index_id) {
+        var attribute_definition = {
+          label: i,
+          type: "String",
+          annotation: annotation
+        };
+        tx_network.inject_attribute_description(i, attribute_definition);
+      }
+    });
+    underscore__WEBPACK_IMPORTED_MODULE_0__["default"].each(nodes_and_attributes, function (n_attr) {
+      if (n_attr[index_id] in existing_network_nodes) {
+        handle_node_attributes_internal(existing_network_nodes[n_attr[index_id]], n_attr, index_id);
+        existing_nodes++;
+      } else {
+        var nk = tx_network.primary_key({
+          id: n_attr[index_id]
+        });
+        if (nk in existing_entities) {
+          existing_nodes++;
+        }
+        inject_new_node_internal(tx_network, n_attr[index_id], n_attr, index_id, node_name_2_id, new_nodes, annotation, existing_entities);
+      }
+    });
+  }
+  if (edges_and_attributes && edges_and_attributes.length) {
+    var auto_inject = !(nodes_and_attributes && nodes_and_attributes.length);
+    var involved_existing_nodes = {};
+    /**  Track existing nodes involved in new edges for auto_inject count
+           For MSPP networks this will track sequence level entities
+      */
+    underscore__WEBPACK_IMPORTED_MODULE_0__["default"].each(edges_and_attributes, function (e_attr) {
+      try {
+        if ("Index" in e_attr && "Partner" in e_attr && "Contact" in e_attr) {
+          var attached_nodes = underscore__WEBPACK_IMPORTED_MODULE_0__["default"].map(["Index", "Partner"], function (d) {
+            return {
+              type: d,
+              node: e_attr[d]
+            };
+          });
+          underscore__WEBPACK_IMPORTED_MODULE_0__["default"].each(attached_nodes, function (n_info) {
+            if (n_info.node in node_name_2_id) {
+              involved_existing_nodes[n_info.node] = true;
+            } else if (auto_inject) {
+              // node is not in node_name_2_id (i.e. not in the network yet)
+              inject_new_node_internal(tx_network, n_info.node, [], index_id, node_name_2_id, new_nodes, annotation, existing_entities);
+            } else {
+              throw Error("Invalid node: " + n_info.node);
+            }
+          });
+          edge_types_dict[e_attr["Contact"]] = (edge_types_dict[e_attr["Contact"]] || 0) + 1;
+          if (tx_network.has_multiple_sequences) {
+            // for MSPP sequences there we need to create edges between ALL existing sequences associated with a particular ID, which may not be in the existing network
+            var pk_idx = tx_network.entity_id_from_string(e_attr["Index"]);
+            var pk_partner = tx_network.entity_id_from_string(e_attr["Partner"]);
+            underscore__WEBPACK_IMPORTED_MODULE_0__["default"].each(existing_entities[pk_idx], function (n_idx) {
+              underscore__WEBPACK_IMPORTED_MODULE_0__["default"].each(existing_entities[pk_partner], function (n_partner) {
+                var new_edge = {
+                  source: node_name_2_id[n_idx.id],
+                  target: node_name_2_id[n_partner.id],
+                  edge_type: e_attr["Contact"],
+                  length: 0.005,
+                  directed: true
+                };
+                tx_network.json.Edges.push(new_edge);
+              });
+            });
+          } else {
+            var new_edge = {
+              source: node_name_2_id[e_attr["Index"]],
+              target: node_name_2_id[e_attr["Partner"]],
+              edge_type: e_attr["Contact"],
+              length: 0.005,
+              directed: true
+            };
+            tx_network.json.Edges.push(new_edge);
+          }
+        } else {
+          throw Error("Missing required attribute (Index, Partner, or Contact)");
+        }
+      } catch (err) {
+        throw Error("Invalid edge specification ( " + err + ") " + JSON.stringify(e_attr));
+      }
+    });
+    if (auto_inject) {
+      existing_nodes = underscore__WEBPACK_IMPORTED_MODULE_0__["default"].size(involved_existing_nodes);
+    }
+    tx_network._aux_populate_category_menus();
+    tx_network.tabulate_multiple_sequences();
+    tx_network.update_clusters_with_injected_nodes(null, null, annotation);
+    if (!tx_network.extra_cluster_table_columns) {
+      tx_network.extra_cluster_table_columns = [];
+    }
+    if (!tx_network.extra_subcluster_table_columns) {
+      tx_network.extra_subcluster_table_columns = [];
+    }
+    var edge_types_by_cluster = {};
+    underscore__WEBPACK_IMPORTED_MODULE_0__["default"].each(tx_network.json.Edges, function (e_edge) {
+      try {
+        if (tx_network.json.Nodes[e_edge.source] && tx_network.json.Nodes[e_edge.target]) {
+          var edge_clusters = underscore__WEBPACK_IMPORTED_MODULE_0__["default"].union(underscore__WEBPACK_IMPORTED_MODULE_0__["default"].keys(tx_network.json.Nodes[e_edge.source].extended_cluster), underscore__WEBPACK_IMPORTED_MODULE_0__["default"].keys(tx_network.json.Nodes[e_edge.target].extended_cluster));
+          underscore__WEBPACK_IMPORTED_MODULE_0__["default"].each(edge_clusters, function (c) {
+            if (!(c in edge_types_by_cluster)) {
+              edge_types_by_cluster[c] = {};
+            }
+            if (e_edge.edge_type) {
+              edge_types_by_cluster[c][e_edge.edge_type] = 1;
+            }
+          });
+        }
+      } catch (err) {
+        console.log("Error processing edge for cluster types:", err, e_edge);
+      }
+    });
+    var edge_types_by_cluster_sorted = {};
+    underscore__WEBPACK_IMPORTED_MODULE_0__["default"].each(edge_types_by_cluster, function (v, c) {
+      var my_keys = underscore__WEBPACK_IMPORTED_MODULE_0__["default"].keys(v);
+      my_keys.sort();
+      edge_types_by_cluster_sorted[c] = my_keys;
+    });
+    var injected_column_subcluster = [{
+      description: {
+        value: annotation + " network",
+        help: "View subclusters with " + annotation + " data"
+      },
+      generator: function generator(cluster) {
+        // cluster here is a subcluster object from tx_network.clusters[...].subclusters
+        return {
+          value: cluster,
+          // payload for the callback will be this subcluster object
+          callback: function callback(element, payload) {
+            var this_cell = d3__WEBPACK_IMPORTED_MODULE_1__.select(element);
+            this_cell.append("button").classed("btn btn-primary btn-xs pull-right", true).style("margin-left", "1em").text("Complete " + annotation).on("click", function (e_event) {
+              return injected_column_subcluster_button_handler_internal(tx_network, payload, null, null, annotation);
+            });
+            var node_ids = {};
+            underscore__WEBPACK_IMPORTED_MODULE_0__["default"].each(payload.children, function (n) {
+              node_ids[n.id] = 1;
+            });
+            this_cell.append("button").classed("btn btn-primary btn-xs pull-right", true).text("Directly linked " + annotation).on("click", function (e_event) {
+              return injected_column_subcluster_button_handler_internal(tx_network, payload, function (edge) {
+                return tx_network.json.Nodes[edge.target].id in node_ids || tx_network.json.Nodes[edge.source].id in node_ids;
+              }, function (id) {
+                return "Subcluster " + payload.cluster_id + "[+ direct  " + annotation + "]";
+              });
+            });
+          }
+        };
+      }
+    }];
+    var injected_column = [{
+      description: {
+        value: annotation + " network",
+        sort: function sort(c) {
+          return c.value[0];
+        },
+        help: "Nodes added and clusters merged through " + annotation
+      },
+      generator: function generator(cluster) {
+        // cluster here is a main cluster object from tx_network.clusters
+        return {
+          value: [cluster.injected ? cluster.injected[annotation] : 0, cluster.linked_clusters, cluster.cluster_id],
+          callback: function callback(element, payload) {
+            var this_cell = d3__WEBPACK_IMPORTED_MODULE_1__.select(element);
+            this_cell.text(Number(payload[0]) + " " + annotation + " nodes. ");
+            var other_clusters = [];
+            if (payload[1]) {
+              other_clusters = underscore__WEBPACK_IMPORTED_MODULE_0__["default"].without(underscore__WEBPACK_IMPORTED_MODULE_0__["default"].keys(payload[1]), payload[2]);
+              if (other_clusters.length) {
+                other_clusters.sort();
+                this_cell.append("span").classed("label label-info", true).text("Bridges to " + other_clusters.length + " clusters").attr("title", other_clusters.join(", "));
+              }
+            }
+            var labeled_links = underscore__WEBPACK_IMPORTED_MODULE_0__["default"].clone(edge_types_by_cluster_sorted[payload[2]] || []);
+            if (payload[0] > 0 || other_clusters.length || edge_types_by_cluster_sorted[payload[2]] && labeled_links.length) {
+              labeled_links.push("");
+              var shown_types = {};
+              underscore__WEBPACK_IMPORTED_MODULE_0__["default"].each(labeled_links, function (t) {
+                shown_types[t] = 1;
+              });
+              this_cell.append("button").classed("btn btn-primary btn-xs pull-right", true).text("Directly linked " + annotation).style("margin-left", "1em").on("click", function (e_event) {
+                var directly_linked_ids = {};
+                var node_ids = {};
+                underscore__WEBPACK_IMPORTED_MODULE_0__["default"].each(cluster.children, function (n) {
+                  // Use the 'cluster' from the generator's scope
+                  node_ids[n.id] = 1;
+                });
+                var direct_links_only = _misc_js__WEBPACK_IMPORTED_MODULE_4__.hivtrace_cluster_depthwise_traversal(tx_network.json.Nodes, tx_network.json.Edges, function (edge) {
+                  return tx_network.json.Nodes[edge.target].id in node_ids || tx_network.json.Nodes[edge.source].id in node_ids;
+                }, false, cluster.children // Use the 'cluster' from the generator's scope
+                );
+                underscore__WEBPACK_IMPORTED_MODULE_0__["default"].each(direct_links_only[0], function (n) {
+                  directly_linked_ids[n.id] = true;
+                });
+                social_view_handler_internal(tx_network, payload[2],
+                // cluster_id
+                function (n) {
+                  return n.id in directly_linked_ids;
+                }, labeled_links, shown_types, function (id) {
+                  return "Cluster " + id + "[+ direct " + annotation + "]";
+                });
+              });
+              this_cell.append("button").classed("btn btn-primary btn-xs pull-right", true).text("Complete " + annotation).on("click", function (e_event) {
+                return social_view_handler_internal(tx_network, payload[2],
+                // cluster_id
+                function (n) {
+                  return n.extended_cluster && payload[2] in n.extended_cluster;
+                }, labeled_links, shown_types, function (id) {
+                  return "Cluster " + id + "[+ " + annotation + "]";
+                }, annotation);
+              });
+            }
+          }
+        };
+      }
+    }];
+    if (tx_network.extra_cluster_table_columns) {
+      tx_network.extra_cluster_table_columns = tx_network.extra_cluster_table_columns.concat(injected_column);
+    } else {
+      tx_network.extra_cluster_table_columns = injected_column;
+    }
+    if (tx_network.subcluster_table) {
+      if (tx_network.extra_subcluster_table_columns) {
+        tx_network.extra_subcluster_table_columns = tx_network.extra_subcluster_table_columns.concat(injected_column_subcluster);
+      } else {
+        tx_network.extra_subcluster_table_columns = injected_column_subcluster;
+      }
+    }
+  }
+  if (tx_network.isPrimaryGraph && (nodes_and_attributes || edges_and_attributes)) {
+    tx_network.draw_cluster_table(tx_network.extra_cluster_table_columns, tx_network.cluster_table);
+    if (tx_network.subcluster_table) {
+      tx_network.draw_cluster_table(tx_network.extra_subcluster_table_columns, tx_network.subcluster_table, {
+        subclusters: true,
+        "no-clusters": true
+      });
+    }
+    if (tx_network._is_CDC_) {
+      //tx_network.draw_extended_node_table(tx_network.aggregate_indvidual_level_records(), null, null, { "no-filter": !tx_network.node_search_div });
+    } else {
+      self.draw_node_table(self.extra_node_table_columns, self.json.Nodes);
+    }
+  }
+  return {
+    nodes: new_nodes,
+    existing_nodes: existing_nodes,
+    edges: edge_types_dict
+  };
+}
+
+/***/ }),
+
 /***/ "./src/tables.js":
 /*!***********************!*\
   !*** ./src/tables.js ***!
@@ -16911,7 +17107,7 @@ module.exports = {
 var d3 = __webpack_require__(/*! d3 */ "./node_modules/d3/d3-exposed.js");
 var _networkCDCDateField = "hiv_aids_dx_dt";
 var _networkTimeQuery = /([0-9]{8}):([0-9]{8})/i;
-var DateViewFormatExport = d3.time.format("%m/%d/%Y");
+var DateViewFormatExport = d3.time.format.utc("%m/%d/%Y");
 var DateViewFormatMMDDYYY = d3.time.format("%m%d%Y");
 /** this is currently used to display node addition dates to COI */
 
@@ -17012,6 +17208,7 @@ module.exports = {
   DateFormats: DateFormats,
   DateUpperBoundYear: DateUpperBoundYear,
   DateViewFormat: DateViewFormat,
+  DateViewFormatExport: DateViewFormatExport,
   DateViewFormatClusterCreate: DateViewFormatClusterCreate,
   DateViewFormatMMDDYYY: DateViewFormatMMDDYYY,
   DateViewFormatShort: DateViewFormatShort,
